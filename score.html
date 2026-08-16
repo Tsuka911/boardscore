@@ -205,6 +205,10 @@
     </div>
   </div>
   <button class="btn-main" onclick="startSheet()">この設定ではじめる</button>
+  <div style="height:10px"></div>
+  <button class="btn-sub" style="width:100%" onclick="clearSetup()">
+    ゲーム名とプレイヤー名を消す
+  </button>
 </div>
 
 <!-- ===== 得点表 ===== -->
@@ -334,6 +338,17 @@ function addPlayer() {
   renderSetup();
 }
 function toggleLow() { draft.lowWins = !draft.lowWins; renderSetup(); }
+
+/* 名前もゲーム名も点数も、すべて消してまっさらな状態に戻す */
+function clearSetup() {
+  if (!confirm('ゲーム名・プレイヤー名・点数をすべて消して、まっさらな状態に戻します。\nよろしいですか？')) return;
+  localStorage.removeItem(SAVE_KEY);
+  G = null;
+  draft = { title: '', lowWins: false,
+            players: [{ name: 'プレイヤー1', src: null }, { name: 'プレイヤー2', src: null }] };
+  renderSetup();
+  show('setup');
+}
 
 function startSheet() {
   const players = draft.players.map((p, i) => p.name.trim() || ('プレイヤー' + (i + 1)));

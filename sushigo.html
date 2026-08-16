@@ -210,6 +210,10 @@
     <div id="nameList"></div>
   </div>
   <button class="btn-main" onclick="startGame()">ゲーム開始</button>
+  <div style="height:10px"></div>
+  <button class="btn-sub" style="width:100%" onclick="clearSetup()">
+    プレイヤー名を消す
+  </button>
   <div class="panel" style="margin-top:14px">
     <details>
       <summary>▶ 得点ルール（オリジナル版）</summary>
@@ -466,6 +470,17 @@ function pawnIcon(i, size) {
 
 let setupCount = 4;
 let setupNames = ['プレイヤー1','プレイヤー2','プレイヤー3','プレイヤー4','プレイヤー5'];
+
+/* プレイヤー名も点数も、すべて消してまっさらな状態に戻す */
+function clearSetup() {
+  if (!confirm('プレイヤー名と点数をすべて消して、まっさらな状態に戻します。\nよろしいですか？')) return;
+  localStorage.removeItem(SAVE_KEY);
+  S = null;
+  setupCount = 4;
+  setupNames = ['プレイヤー1','プレイヤー2','プレイヤー3','プレイヤー4','プレイヤー5'];
+  renderSetup();
+  show('setup');
+}
 
 function renderSetup() {
   const cr = document.getElementById('countRow');

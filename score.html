@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2c6e9b">
+<title>ボドゲ得点表</title>
+<style>
+  :root {
+    --bg: #f4f7fa;
+    --card: #ffffff;
+    --ink: #1e2a33;
+    --sub: #7b8b99;
+    --line: #dfe6ed;
+    --accent: #2c6e9b;
+    --accent-soft: #e6f0f7;
+    --gold: #d4a017;
+    --shadow: 0 2px 8px rgba(40,60,80,.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151a1e;
+      --card: #1f272d;
+      --ink: #e8eef3;
+      --sub: #8fa0ad;
+      --line: #313c45;
+      --accent: #57a5d4;
+      --accent-soft: #22333f;
+      --gold: #e0b83a;
+      --shadow: 0 2px 8px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: var(--bg); color: var(--ink);
+    padding-bottom: 100px;
+  }
+  header {
+    background: var(--accent); color: #fff;
+    padding: 12px 14px; position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  }
+  header .ttl {
+    flex: 1; font-size: 17px; font-weight: 700; text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  header button, header a.home {
+    background: rgba(255,255,255,.2); color: #fff; border: none;
+    border-radius: 8px; padding: 7px 10px; font-size: 13px; font-family: inherit;
+    cursor: pointer; white-space: nowrap;
+  }
+  header a.home { text-decoration: none; font-size: 15px; line-height: 1.1; padding: 6px 10px; }
+  .wrap { max-width: 700px; margin: 0 auto; padding: 14px; }
+  .panel {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow);
+  }
+  h2 { font-size: 14px; margin: 0 0 12px; color: var(--sub); font-weight: 600; }
+  button { font-family: inherit; cursor: pointer; border: none; border-radius: 10px; font-size: 15px; }
+  .btn-main {
+    display: block; width: 100%; background: var(--accent); color: #fff;
+    padding: 15px; font-size: 17px; font-weight: 700; box-shadow: var(--shadow);
+  }
+  .btn-sub {
+    background: transparent; color: var(--sub);
+    border: 1px solid var(--line); padding: 11px 14px; font-size: 14px;
+  }
+  .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .row input {
+    flex: 1; padding: 12px; font-size: 16px; border: 1px solid var(--line);
+    border-radius: 9px; background: var(--bg); color: var(--ink); font-family: inherit;
+  }
+  .row .del {
+    width: 40px; height: 40px; background: transparent; color: var(--sub);
+    border: 1px solid var(--line); font-size: 18px; flex: 0 0 auto;
+  }
+  .add-line {
+    width: 100%; padding: 11px; background: var(--accent-soft); color: var(--accent);
+    font-weight: 600; border: 1px dashed var(--accent);
+  }
+  .toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0; border-top: 1px solid var(--line); margin-top: 8px;
+  }
+  .toggle .lbl { font-size: 14px; }
+  .toggle .lbl small { display: block; color: var(--sub); font-size: 11px; margin-top: 2px; }
+  .sw {
+    width: 52px; height: 30px; border-radius: 15px; background: var(--line);
+    position: relative; flex: 0 0 auto; transition: background .15s;
+  }
+  .sw.on { background: var(--accent); }
+  .sw::after {
+    content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px;
+    border-radius: 50%; background: #fff; transition: left .15s;
+  }
+  .sw.on::after { left: 25px; }
+
+  /* --- 得点表 --- */
+  .scroller { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.sheet { border-collapse: separate; border-spacing: 0; width: 100%; }
+  table.sheet th, table.sheet td { padding: 0; }
+  .sheet .hd {
+    font-size: 11px; color: var(--sub); font-weight: 600;
+    padding: 8px 4px; text-align: center; border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .sheet .hd.col { min-width: 62px; cursor: pointer; }
+  .sheet .hd.col:active { background: var(--accent-soft); }
+  .sheet .nmcell {
+    position: sticky; left: 0; z-index: 2; background: var(--card);
+    padding: 6px 8px 6px 4px; border-bottom: 1px solid var(--line);
+    border-right: 1px solid var(--line); min-width: 104px; max-width: 130px;
+  }
+  .sheet .nmcell .in { display: flex; align-items: center; gap: 6px; }
+  .sheet .nmcell .rk {
+    font-size: 15px; width: 24px; text-align: center; flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .sheet .nmcell .rk.num { font-size: 12px; color: var(--sub); font-weight: 700; }
+  .sheet .nmcell .nm {
+    font-size: 14px; font-weight: 600; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sheet td.cell { border-bottom: 1px solid var(--line); }
+  .sheet td.cell button {
+    width: 100%; min-width: 62px; height: 46px; background: transparent;
+    color: var(--ink); font-size: 17px; font-weight: 600; border-radius: 0;
+  }
+  .sheet td.cell button.empty { color: var(--sub); opacity: .35; font-weight: 400; }
+  .sheet td.cell button:active { background: var(--accent-soft); }
+  .sheet .totcell {
+    position: sticky; right: 0; z-index: 2; background: var(--card);
+    border-left: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    padding: 6px 8px; text-align: right; min-width: 62px;
+  }
+  .sheet .totcell .v { font-size: 19px; font-weight: 800; color: var(--accent); }
+  .sheet tr.lead .nmcell, .sheet tr.lead .totcell { background: var(--accent-soft); }
+  .sheet tr.lead td.cell { background: var(--accent-soft); }
+  .colbtns { display: flex; gap: 8px; margin-top: 12px; }
+  .colbtns button { flex: 1; padding: 12px; }
+  .hint-txt { font-size: 11px; color: var(--sub); margin-top: 10px; line-height: 1.6; }
+
+  /* --- 下部バー --- */
+  .footbar {
+    position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
+    border-top: 1px solid var(--line); z-index: 30;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  }
+  .footbar .inner { max-width: 700px; margin: 0 auto; display: flex; gap: 8px; }
+  .footbar .btn-sub { flex: 1; }
+
+  /* --- テンキー --- */
+  .sheetmodal {
+    position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end;
+    background: rgba(0,0,0,.4);
+  }
+  .sheetmodal.hide { display: none; }
+  .sheetbox {
+    width: 100%; max-width: 700px; margin: 0 auto; background: var(--card);
+    border-radius: 18px 18px 0 0; padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 20px rgba(0,0,0,.2);
+  }
+  .kp-head { text-align: center; margin-bottom: 8px; }
+  .kp-head .who { font-size: 13px; color: var(--sub); }
+  .kp-head .val { font-size: 30px; font-weight: 800; margin-top: 2px; }
+  .kp-head .val .calc { font-size: 16px; color: var(--sub); font-weight: 600; }
+  .kp { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+  .kp button {
+    height: 52px; font-size: 21px; font-weight: 700;
+    background: var(--bg); border: 1px solid var(--line); color: var(--ink);
+  }
+  .kp button.fn { font-size: 16px; color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+  .kp button.ok { grid-column: span 2; background: var(--accent); color: #fff; border-color: var(--accent); font-size: 17px; }
+  .kp button.next { background: var(--accent); color: #fff; border-color: var(--accent); font-size: 14px; }
+  .kp button.cancel { color: var(--sub); font-size: 15px; }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="index.html">‹</a>
+  <button onclick="goSetup()" id="btnEdit">編集</button>
+  <div class="ttl" id="title">ボドゲ得点表</div>
+  <button onclick="resetAll()" id="btnReset">新規</button>
+</header>
+
+<!-- ===== セットアップ ===== -->
+<div id="screenSetup" class="wrap">
+  <div class="panel">
+    <h2>ゲーム名</h2>
+    <div class="row"><input id="inTitle" maxlength="20" placeholder="例: カタン"></div>
+  </div>
+  <div class="panel">
+    <h2>プレイヤー（2〜8人）</h2>
+    <div id="playerList"></div>
+    <button class="add-line" onclick="addPlayer()">＋ プレイヤーを追加</button>
+    <div class="toggle" onclick="toggleLow()">
+      <div class="lbl">点が少ない方が勝ち
+        <small>ゴルフ系・失点制のゲームはこちら</small></div>
+      <div class="sw" id="swLow"></div>
+    </div>
+  </div>
+  <button class="btn-main" onclick="startSheet()">この設定ではじめる</button>
+</div>
+
+<!-- ===== 得点表 ===== -->
+<div id="screenSheet" class="hide">
+  <div class="wrap">
+    <div class="panel" style="padding:10px 6px">
+      <div class="scroller"><table class="sheet" id="sheet"></table></div>
+      <div class="colbtns">
+        <button class="btn-sub" onclick="addCol()">＋ ラウンドを追加</button>
+        <button class="btn-sub" onclick="delCol()" id="btnDelCol">− 最後を削除</button>
+      </div>
+      <div class="hint-txt">
+        ・マスをタップすると数字を入力できます（すでに入っている点に足すこともできます）<br>
+        ・列の見出し（R1など）をタップすると名前を変えられます。「農地」「勝利点」などゲームに合わせてどうぞ
+      </div>
+    </div>
+  </div>
+  <div class="footbar"><div class="inner">
+    <button class="btn-sub" onclick="clearScores()">点数を全部0に戻す</button>
+  </div></div>
+</div>
+
+<!-- ===== テンキー ===== -->
+<div class="sheetmodal hide" id="keypad">
+  <div class="sheetbox">
+    <div class="kp-head">
+      <div class="who" id="kpWho"></div>
+      <div class="val" id="kpVal"></div>
+    </div>
+    <div class="kp">
+      <button onclick="kpNum('7')">7</button>
+      <button onclick="kpNum('8')">8</button>
+      <button onclick="kpNum('9')">9</button>
+      <button class="fn" onclick="kpBack()">⌫</button>
+
+      <button onclick="kpNum('4')">4</button>
+      <button onclick="kpNum('5')">5</button>
+      <button onclick="kpNum('6')">6</button>
+      <button class="fn" onclick="kpClear()">C</button>
+
+      <button onclick="kpNum('1')">1</button>
+      <button onclick="kpNum('2')">2</button>
+      <button onclick="kpNum('3')">3</button>
+      <button class="fn" onclick="kpSign()">±</button>
+
+      <button onclick="kpNum('0')">0</button>
+      <button onclick="kpNum('00')">00</button>
+      <button class="fn" onclick="kpPlus()" id="kpPlusBtn">＋足す</button>
+      <button class="cancel" onclick="kpCancel()">閉じる</button>
+
+      <button class="ok" onclick="kpOk(false)">決定</button>
+      <button class="next" onclick="kpOk(true)">決定して<br>次の人 →</button>
+      <button class="cancel" onclick="kpZero()">0点</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   汎用ボドゲ得点表
+   G = { title, players[], cols[], scores[player][col], lowWins }
+   ========================================================= */
+const SAVE_KEY = 'boardscore_generic_v1';
+const MAX_PLAYERS = 8;
+let G = null;
+let draft = null;   // セットアップ中の一時データ
+
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch(e){} }
+function load() {
+  try {
+    const g = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (g && g.players && g.scores) return g;
+  } catch(e){}
+  return null;
+}
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+}
+function show(which) {
+  document.getElementById('screenSetup').classList.toggle('hide', which !== 'setup');
+  document.getElementById('screenSheet').classList.toggle('hide', which !== 'sheet');
+  // 設定中は「編集」を押せないようにする（入力中の内容が消えるのを防ぐ）
+  document.getElementById('btnEdit').style.visibility = which === 'setup' ? 'hidden' : 'visible';
+  document.getElementById('btnReset').style.visibility = G ? 'visible' : 'hidden';
+  window.scrollTo(0, 0);
+}
+
+/* ---------- セットアップ ---------- */
+/* プレイヤーは { name, src } で持つ。
+   src = 元の得点表での並び順。名前を書き換えても点数を見失わないようにするため */
+function goSetup() {
+  draft = G
+    ? { title: G.title, lowWins: G.lowWins,
+        players: G.players.map((n, i) => ({ name: n, src: i })) }
+    : { title: '', lowWins: false,
+        players: [{ name: 'プレイヤー1', src: null }, { name: 'プレイヤー2', src: null }] };
+  renderSetup();
+  show('setup');
+}
+
+function renderSetup() {
+  document.getElementById('inTitle').value = draft.title;
+  document.getElementById('inTitle').oninput = e => draft.title = e.target.value;
+  document.getElementById('swLow').classList.toggle('on', draft.lowWins);
+
+  const list = document.getElementById('playerList');
+  list.innerHTML = '';
+  draft.players.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const inp = document.createElement('input');
+    inp.value = p.name; inp.maxLength = 12;
+    inp.oninput = e => draft.players[i].name = e.target.value;
+    row.appendChild(inp);
+    const del = document.createElement('button');
+    del.className = 'del'; del.textContent = '×';
+    del.disabled = draft.players.length <= 2;
+    del.style.opacity = draft.players.length <= 2 ? .3 : 1;
+    del.onclick = () => { draft.players.splice(i, 1); renderSetup(); };
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+function addPlayer() {
+  if (draft.players.length >= MAX_PLAYERS) return;
+  draft.players.push({ name: 'プレイヤー' + (draft.players.length + 1), src: null });
+  renderSetup();
+}
+function toggleLow() { draft.lowWins = !draft.lowWins; renderSetup(); }
+
+function startSheet() {
+  const players = draft.players.map((p, i) => p.name.trim() || ('プレイヤー' + (i + 1)));
+  const title = draft.title.trim() || 'ボドゲ得点表';
+
+  if (!G) {
+    // 新規作成
+    G = { title, players, cols: ['R1'], lowWins: draft.lowWins,
+          scores: players.map(() => [0]) };
+  } else {
+    // 設定を変えても、元からいた人の点数はそのまま引き継ぐ
+    const oldScores = G.scores;
+    G.scores = draft.players.map(p =>
+      (p.src !== null && oldScores[p.src]) ? oldScores[p.src].slice() : G.cols.map(() => 0));
+    G.title = title; G.players = players; G.lowWins = draft.lowWins;
+  }
+  save();
+  renderSheet();
+  show('sheet');
+}
+
+/* ---------- 得点表 ---------- */
+function totals() {
+  return G.scores.map(row => row.reduce((a, b) => a + b, 0));
+}
+function ranks() {
+  const t = totals();
+  const sorted = t.slice().sort((a, b) => G.lowWins ? a - b : b - a);
+  return t.map(v => sorted.indexOf(v) + 1);
+}
+
+function renderSheet() {
+  document.getElementById('title').textContent = G.title;
+  const t = totals(), rk = ranks();
+  const medals = ['🥇', '🥈', '🥉'];
+  const allZero = t.every(v => v === 0);
+
+  let html = '<tr><th class="hd nmcell" style="text-align:left">プレイヤー</th>';
+  G.cols.forEach((c, ci) => {
+    html += `<th class="hd col" onclick="editCol(${ci})">${esc(c)} ✎</th>`;
+  });
+  html += '<th class="hd totcell" style="text-align:right">合計</th></tr>';
+
+  G.players.forEach((n, pi) => {
+    const lead = !allZero && rk[pi] === 1;
+    html += `<tr class="${lead ? 'lead' : ''}">
+      <td class="nmcell"><div class="in">
+        <span class="rk${rk[pi] > 3 ? ' num' : ''}">${
+          allZero ? '' : (medals[rk[pi] - 1] || rk[pi] + '位')}</span>
+        <span class="nm">${esc(n)}</span></div></td>`;
+    G.cols.forEach((c, ci) => {
+      const v = G.scores[pi][ci];
+      html += `<td class="cell"><button class="${v === 0 ? 'empty' : ''}"
+        onclick="openKeypad(${pi},${ci})">${v}</button></td>`;
+    });
+    html += `<td class="totcell"><span class="v">${t[pi]}</span></td></tr>`;
+  });
+
+  document.getElementById('sheet').innerHTML = html;
+  document.getElementById('btnDelCol').style.opacity = G.cols.length <= 1 ? .3 : 1;
+  save();
+}
+
+function addCol() {
+  G.cols.push('R' + (G.cols.length + 1));
+  G.scores.forEach(r => r.push(0));
+  save(); renderSheet();
+  // 追加した列が見えるように右端までスクロール
+  const sc = document.querySelector('.scroller');
+  setTimeout(() => sc.scrollLeft = sc.scrollWidth, 30);
+}
+function delCol() {
+  if (G.cols.length <= 1) return;
+  const last = G.cols.length - 1;
+  const hasScore = G.scores.some(r => r[last] !== 0);
+  if (hasScore && !confirm(`「${G.cols[last]}」の点数も消えます。削除しますか？`)) return;
+  G.cols.pop();
+  G.scores.forEach(r => r.pop());
+  save(); renderSheet();
+}
+function editCol(ci) {
+  const name = prompt('列の名前を変えられます（例: R1、農地、勝利点）', G.cols[ci]);
+  if (name === null) return;
+  G.cols[ci] = name.trim() || G.cols[ci];
+  save(); renderSheet();
+}
+function clearScores() {
+  if (!confirm('すべての点数を0に戻します。プレイヤーと列はそのまま残ります。よろしいですか？')) return;
+  G.scores = G.players.map(() => G.cols.map(() => 0));
+  save(); renderSheet();
+}
+function resetAll() {
+  if (G && !confirm('今の得点表を消して、新しく作り直します。よろしいですか？')) return;
+  localStorage.removeItem(SAVE_KEY);
+  G = null;
+  goSetup();
+}
+
+/* ---------- テンキー ---------- */
+let kp = { pi: 0, ci: 0, buf: '', add: false };
+
+function openKeypad(pi, ci) {
+  kp = { pi, ci, buf: '', add: false };
+  document.getElementById('keypad').classList.remove('hide');
+  renderKp();
+}
+function renderKp() {
+  const cur = G.scores[kp.pi][kp.ci];
+  document.getElementById('kpWho').textContent =
+    `${G.players[kp.pi]} ／ ${G.cols[kp.ci]}`;
+  const el = document.getElementById('kpVal');
+  if (kp.add) {
+    const add = Number(kp.buf || 0);
+    el.innerHTML = `<span class="calc">${cur} ${add < 0 ? '−' : '+'} ${Math.abs(add)} =</span> ${cur + add}`;
+  } else {
+    el.innerHTML = kp.buf === ''
+      ? `${cur}` : `<span class="calc">${cur} →</span> ${Number(kp.buf)}`;
+  }
+  document.getElementById('kpPlusBtn').style.opacity = kp.add ? .45 : 1;
+}
+function kpNum(d) {
+  if (kp.buf.replace('-', '').length >= 4) return;
+  if (kp.buf === '0') kp.buf = '';
+  kp.buf += d;
+  renderKp();
+}
+function kpBack() { kp.buf = kp.buf.slice(0, -1); renderKp(); }
+function kpClear() { kp.buf = ''; renderKp(); }
+function kpSign() {
+  kp.buf = kp.buf.startsWith('-') ? kp.buf.slice(1) : '-' + kp.buf;
+  renderKp();
+}
+function kpPlus() { kp.add = true; renderKp(); }
+function kpZero() { G.scores[kp.pi][kp.ci] = 0; closeKp(); renderSheet(); }
+function kpCancel() { closeKp(); }
+function closeKp() { document.getElementById('keypad').classList.add('hide'); }
+
+function kpOk(goNext) {
+  const cur = G.scores[kp.pi][kp.ci];
+  G.scores[kp.pi][kp.ci] = kp.add
+    ? cur + Number(kp.buf || 0)
+    : (kp.buf === '' ? cur : Number(kp.buf));
+  renderSheet();
+  if (goNext && kp.pi < G.players.length - 1) {
+    openKeypad(kp.pi + 1, kp.ci);
+  } else {
+    closeKp();
+  }
+}
+
+/* ---------- 起動 ---------- */
+(function init() {
+  G = load();
+  if (G) { renderSheet(); show('sheet'); }
+  else { goSetup(); }
+})();
+</script>
+</body>
+</html>

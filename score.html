@@ -186,7 +186,6 @@
   <a class="home" href="index.html">‹</a>
   <button onclick="goSetup()" id="btnEdit">編集</button>
   <div class="ttl" id="title">ボドゲ得点表</div>
-  <button onclick="resetAll()" id="btnReset">新規</button>
 </header>
 
 <!-- ===== セットアップ ===== -->
@@ -224,7 +223,8 @@
     </div>
   </div>
   <div class="footbar"><div class="inner">
-    <button class="btn-sub" onclick="clearScores()">点数を全部0に戻す</button>
+    <button class="btn-sub" onclick="clearScores()">点数を0に戻す</button>
+    <button class="btn-sub" onclick="resetAll()">最初からやり直す</button>
   </div></div>
 </div>
 
@@ -289,7 +289,6 @@ function show(which) {
   document.getElementById('screenSheet').classList.toggle('hide', which !== 'sheet');
   // 設定中は「編集」を押せないようにする（入力中の内容が消えるのを防ぐ）
   document.getElementById('btnEdit').style.visibility = which === 'setup' ? 'hidden' : 'visible';
-  document.getElementById('btnReset').style.visibility = G ? 'visible' : 'hidden';
   window.scrollTo(0, 0);
 }
 
@@ -426,11 +425,13 @@ function clearScores() {
   G.scores = G.players.map(() => G.cols.map(() => 0));
   save(); renderSheet();
 }
+/* 得点を捨てて設定画面に戻る（プレイヤー名と設定はそのまま引き継ぐ） */
 function resetAll() {
-  if (G && !confirm('今の得点表を消して、新しく作り直します。よろしいですか？')) return;
+  if (G && !confirm('この得点表をやめて、最初の設定画面に戻ります。\n入力した点数は消えます（プレイヤー名はそのまま残ります）。\nよろしいですか？')) return;
+  goSetup();                      // 先に今のメンバーを設定画面へ引き継ぐ
   localStorage.removeItem(SAVE_KEY);
   G = null;
-  goSetup();
+  show('setup');                  // ボタンの表示を更新
 }
 
 /* ---------- テンキー ---------- */
